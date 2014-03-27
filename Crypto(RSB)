@@ -1,0 +1,31 @@
+#import serial
+#import pycrypto
+import random
+
+
+def SequenceBuildForServo(NbBit):
+	for i in range(1,NbBit):
+		KeyBuilder[i] = random.randint(0,1)
+	return KeyBuilder
+
+def SendToArduino(listServo, bitKey):	
+	for i in range(1, bitKey):
+		ser.write(listservo[i])
+
+def ReceiveArduino(bitKey):
+	a = False
+	while a == False:
+		if #ser.aivailable():
+			for i in range(1,bitKey):
+				listReceive[i]=ser.read()
+		a = True 
+	
+def KeyBuild()
+	ser = serial.Serial('/dev/ttyAMA0',9600)
+	KeyBuilder = []
+	bitkey = 9    # nombre de bit + 1 pour la clé
+ 	SeqServo = SequenceBuildForServo(bitKey)
+	SendToArduino(SeqServo, bitKey)
+	ReceiveArduino(bitKey)
+	
+
