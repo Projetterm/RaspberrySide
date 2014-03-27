@@ -1,0 +1,133 @@
+import ftplib as ftp
+ 
+commands = {}
+ 
+def connection(value=None):
+    if value == None:
+        return getattr(connection, 'value', None)
+    else:
+        connection.value = value
+        return value
+ 
+def ftpcommand(nom_court, description):
+    def decorator(function):
+        global commands
+        commands[nom_court] = (function, description)
+        return function
+    return decorator
+ 
+@ftpcommand("help", "Affiche l'aide des commandes. Syntaxe: help")
+def help():
+    global commands
+    keys = commands.keys()
+    keys.sort()
+    for i in keys:
+        print i+" : "+commands[i][1]
+ 
+@ftpcommand("connect", "Se connecte au serveur. Syntaxe: connect <host> <user> <password>")
+def connect(host, user, password):
+    connection(ftp.FTP(host, user, password))
+ 
+@ftpcommand("ls", "Liste le contenu du répertoire actuel. Syntaxe: ls")
+def ls():
+    print connection().dir()
+ 
+@ftpcommand("deco", "Se déconnecte du serveur. Syntaxe: deco")
+def deco():
+        connection().quit()
+        
+@ftpcommand("download", "Télécharge un fichier du serveur. Syntaxe: download <fichier_cible>")
+def download(fichier_cible):
+    with open("E:\projet " + fichier_cible, 'wb') as f:
+        connection().retrbinary("RETR " + fichier_cible, f.write)
+
+@ftpcommand("envoi", "Envoie un fichier au serveur. Syntaxe: envoi <adresse_fichier>")
+def envoi(adresse_fichier):
+      fichier = adresse_fichier
+      file = open(fichier, 'rb')
+      connection().storbinary('STOR '+fichier, file)
+      file.close()
+ 
+@ftpcommand("rename", "Renomme un fichier. Syntaxe: rename <avant> <apres>")
+def rename(avant, apres):
+        renommer, renommer_en = avant, apres
+        rename = connection().rename(renommer, renommer_en)
+ 
+@ftpcommand("efface", "Efface un fichier. Syntaxe : efface <fichier>")
+def efface(fichier):
+        effacer = fichier
+        delete = connection().delete(effacer)
+ 
+@ftpcommand("creer_rep", "Crée un répertoire (dossier). Syntaxe : creer_rep <nom>")
+def creer_rep(nom):
+        rep = nom
+        repertoire = connection().mkd(rep)
+ 
+@ftpcommand("sup_rep", "Supprimer un répertoire (dossier). Syntaxe : sup_rep <nom>")
+def sup_rep(nom):
+        supprimer = nom
+        delete_dir = connection().rmd(supprimer)
+ 
+@ftpcommand("cmd", "Envoie une commande au serveur. Syntaxe: cmd <commande>")
+def cmd(commande):
+        resultat = connection().sendcmd(commande)
+
+@ftpcommand("pwd", "Donne le chemin du dossier actuel. Syntaxe : pwd")
+def pwd():
+    print connection().pwd()
+
+@ftpcommand("cwd", "Change le dossier d'écriture. Syntaxe : cwd <dossier>")
+def cwd(dossier):
+    connection().cwd(dossier)
+    print connection().pwd()
+
+@ftpcommand("downloadfolder", "Télécharge le contenu d'un dossier. Syntaxe : downloadfolder <dossier>")
+def downloadfolder(dossier):
+    connection().cwd("/home/pi/" + dossier)
+    filelist = connection().nlst()
+    for file in filelist:
+        connection().retrbinary("RETR "+file, open("E:\image\ " + file,"wb").write)
+        print file + " downloaded"
+    return
+    print "Tout les fichiers sont téléchargés"
+
+
+welcome ='''ftp.py version 1.0, Copyright (C) 2007
+
+ftp.py comes with ABSOLUTELY NO WARRANTY. This is free software, and you are
+welcome to redistribute it under certain conditions; see the GNU General Public
+License for more details: http://www.gnu.org/licenses/old-licenses/gpl-2.0.html'''
+ 
+def main():
+    global commands
+    print welcome
+    def command_to_argv(cmd):
+        argv = cmd.split(' ') 
+        argv_size = len(argv)
+        i = 0
+        while i < argv_size:
+            if argv[i].endswith('\\') and i + 1 != argv_size:
+                argv[i] = argv[i][:-1] + " " + argv[i + 1]
+                del argv[i + 1]
+                argv_size -= 1
+            i += 1
+        return argv
+    while True:
+        try: cmd = command_to_argv(raw_input('> '))
+        except EOFError: return 0
+        except KeyboardInterrupt: return 0
+ 
+        cmdname, args = cmd[0], cmd[1:]
+        if not cmdname in commands.keys():
+            print "Erreur: '%s' commande incorrecte." % cmdname
+            continue
+        try:
+            commands[cmdname][0](*args)
+        except TypeError:
+            print "Erreur: mauvais nombre d'arguments pour '%s' command." % cmdname
+        except AttributeError:
+            print "Erreur : vous n'êtes pas connecté !"
+    return 0
+ 
+import sys
+if __name__ == "__main__": sys.exit(main())
