@@ -1,0 +1,52 @@
+import ftplib as ftp
+import serial
+import random
+import socket
+
+#==========-----  Variable à configurer  -----==========#
+
+dossier = "image"
+dossierpc = "E:\image\ "
+host = "10.158.33.10"
+user = "pi"
+password = "raspberry"
+port = "COM5"
+vitesse = 9600
+host2 = ""
+port2 = 50007
+
+#==========-----        Fonctions        -----==========#
+
+def BB84():
+
+    # Protocole à faire
+
+def downloadfolder(dossier):
+    connection().cwd("/home/pi/" + dossier)
+    filelist = connection().nlst()
+    for file in filelist:
+        connection().retrbinary("RETR "+file, open(dossierpc + file,"wb").write)
+        print file + " downloaded"
+    print "Tout les fichiers sont téléchargés"
+    return
+
+def connect(host, user, password):
+    connection(ftp.FTP(host, user, password))
+
+def ready(r):
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind((host2, port2))
+    while r != 1:
+        if s.listen(1) > 1:
+            conn, addr = s.accept()
+            print addr + " connecté, protocole BB84 prêt à être lancé."
+            r = 1
+    return ready(r)
+
+#==========-----        Programme        -----==========#
+while 1:
+    if ready() == 1:
+        BB84()
+        connect(host, user, password)
+        downloadfolder(dossier)
+        break
