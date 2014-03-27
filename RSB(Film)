@@ -1,0 +1,64 @@
+import picamera
+import serial
+import subprocess
+
+#----------Fonction d'initialisation de Com-----------#
+def InitCom():
+	with open("COM1.txt", 'w') as fichier:
+		fichier.write('1')
+#-----------------------------------------------------#
+
+#----------Fonction recuperation heure----------#
+def RecupH():
+	H = '1'
+	#ser.write('h')
+	#while H == '1':
+	#	H = ser.readline()
+	return 'a'
+#-----------------------------------------------#
+
+#---------- FONCTION d'assignement de nom fichier et d'aquisition ----------#
+def NomPh():
+	with  picamera.PiCamera() as camera:
+		t = '/home/pi/image/image' + RecupH() + '.jpg'
+		camera.capture(t)
+#---------------------------------------------------------------------------#
+
+
+#---------------Fonction qui communique avec le programme de crypto---------------#
+def Com():
+	print("com")
+	with open("COM1.txt","w") as fichier:
+		fichier.write('0')
+	with open("COM2.txt","r") as fichier:
+		i = fichier.read()
+	if i == '0':
+		ser.writeline('s')
+		#Shutdown()
+
+#---------------------------------------------------------------------------------#
+
+#-----------------------fonction de shutdown -------------------------------------#
+def Shutdown():
+    command = "/usr/bin/sudo /sbin/shutdown -h now"
+    process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
+    output = process.communicate()[0]
+    print output
+
+#---------------------------------------------------------------------------------#
+
+
+InitCom()
+ser = serial.Serial('/dev/ttyAMA0',9600)
+a = False
+while a == False:
+	print("while")
+	if ser.read() == "2" :
+		print("if")
+		NomPh()
+		a = True
+		print("apresfilm")
+	print(a)
+Com()
+print("aprescom")
+
