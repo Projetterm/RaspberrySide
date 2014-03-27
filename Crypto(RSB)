@@ -4,7 +4,7 @@ import random
 
 
 def SequenceBuildForServo(NbBit):
-	for i in range(1,NbBit):
+	for i in range(0,NbBit):
 		KeyBuilder[i] = random.randint(0,1)
 	return KeyBuilder
 
@@ -15,17 +15,41 @@ def SendToArduino(listServo, bitKey):
 def ReceiveArduino(bitKey):
 	a = False
 	while a == False:
-		if #ser.aivailable():
-			for i in range(1,bitKey):
+		if ser.inWaiting() > 1:
+			for i in range(0,bitKey):
 				listReceive[i]=ser.read()
 		a = True 
-	
-def KeyBuild()
-	ser = serial.Serial('/dev/ttyAMA0',9600)
-	KeyBuilder = []
-	bitkey = 9    # nombre de bit + 1 pour la clé
+	return listReceive
+def Keygen():
  	SeqServo = SequenceBuildForServo(bitKey)
 	SendToArduino(SeqServo, bitKey)
-	ReceiveArduino(bitKey)
+	ser.flushInput()
+	Receive = ReceiveArduino(bitKey)
+	KeyP = Build(bitkey, Receive,SeqServo) 
+	return KeyP 
+	
+	
+def main():
+	ser = serial.Serial('/dev/ttyAMA0',9600)
+	KeyBuilder = []
+	Key = []
+	bitkey = 8    # nombre de bits pour la clé
+	a = False
+	while a == False:
+		KeyP = Keygen(bitkey)
+		if  KeyP < 8:
+			
+
+	
+	
 	
 
+def Build(bitkey, Receive,SeqServo) :
+	for i in range(0,bitkey):# compare la cle envoyer et le resultat et ramplace les mauvais resulta par 7 dans la clé
+		if Receive[i] = 0 :
+			SeqServo[i] = 7 
+	for i in range(0, bitkey):# suprime les mauvais bit de clé (7) 
+		if SeqServo[i] = 7:
+			del SeqServo[i]
+	return SeqServo
+	
