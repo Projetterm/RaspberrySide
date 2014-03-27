@@ -1,0 +1,153 @@
+/*---------- Include ----------*/
+#include <Wire.h>
+#include "RTClib.h"
+#include <SoftwareSerial.h>
+/* ---------------------------*/
+
+/*---------- déclaration objets ----------*/
+RTC_DS1307 RTC;
+SoftwareSerial mySerial(10, 11);
+/* ---------------------------------------*/
+
+// declaration fonctions
+boolean powerOn();
+boolean DTRAN();
+boolean orderDRSBP();
+boolean verifH();
+void orderSRSBP();
+void envRSB();
+void Reset();
+
+// variables
+boolean mPowerOn = false;
+boolean verfD = false,verfS = false;
+boolean PHDIODE;
+
+void setup()   
+{
+   mySerial.begin(9600);   
+   pinMode(13,OUTPUT);   // utilise la led
+   digitalWrite(13, LOW);
+   pinMode(12,INPUT);   
+   digitalWrite(12, HIGH ); // pullup de la pin 12
+   Serial.begin(57600);
+   Wire.begin();      
+   RTC.begin(); 
+   //RTC.adjust(DateTime(__DATE__, __TIME__));
+   pinMode(2,OUTPUT);//sotie commande allumage 
+   pinMode(A0,INPUT);
+   pinMode(4,INPUT); // entrer qui simule l'heure
+ 
+}
+
+/* ------------  fonction principale ------------ */
+void loop() 
+{
+  if (mPowerOn != true)// on regarde si on doit allumer le RSB
+  {
+    if (powerOn() == true)
+    {
+      digitalWrite(2,HIGH); 
+    }
+  }
+  else
+  {
+    envRSB();
+  }
+    
+}
+/* ---------------------------------------------- */
+
+
+
+
+/* ------------  définition fonction  ------------ */
+boolean powerOn()
+{
+  if(mPowerOn != true)
+  {
+
+    if( DTRAN() == true || verifH() == true)// on regarde si c'est l'heure ou si on a un signal sur la photo diode
+    {
+      mPowerOn = true;
+      return true;
+    }
+  }
+  else
+  {
+    return false;
+  }
+}
+
+boolean DTRAN() // transforme l'entrée analogique en binaire
+{
+  int testdiode = analogRead(A0);
+  if (testdiode > 900)
+  {
+    PHDIODE = true;
+  }
+  else 
+  {
+    PHDIODE = false ;
+  }
+  return PHDIODE;
+}
+
+boolean orderDRSBP()//envoie l'orde au RSB de commencer la transmission 
+{
+  if (PHDIODE == true || DTRAN() == true)
+  {
+   // mySerial.write(0,DEC);
+    Serial.println (0,DEC);
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
+void orderSRSBP()// envoie l'ordre au RSB de filmer
+{
+    mySerial.write("2");
+    Serial.println (1,DEC);
+}
+
+void envRSB()
+{
+    if ( verfD == false)// si on a pas deja executer orderDRSBP()
+    {
+      if(orderDRSBP() == true && mPowerOn == true)
+      {
+        verfD = true;
+      } 
+    }
+    if (verfS == false && mPowerOn == true && verifH() == true)// on a pas deja executer orderSRSBP()
+    { 
+        orderSRSBP();
+        verfS = true;
+    }
+}
+
+boolean verifH()
+{
+  DateTime now = RTC.now();  //récupére les donnés du rtc
+  uint8_t minutes = now.minute(),heure = now.hour();
+  boolean Led = digitalRead(4);
+  if( heure == 8 /*&& minutes == 8*/ || heure == 18 || heure == 22 || Led == HIGH)
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
+/*void Reset()
+{
+  EtatD = false;
+  mPowerOn = false;
+  verfD = false;
+  verfS = false;
+}*/
