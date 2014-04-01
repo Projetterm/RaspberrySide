@@ -1,23 +1,26 @@
-#import serial
-#import pycrypto
+import serial
+from Crypto.Cipher import AES
+from PIL import Image
 import random
 
 
 def SequenceBuildForServo(NbBit):
-	for i in range(0,NbBit):
+	for i in range(1,NbBit):
 		KeyBuilder[i] = random.randint(0,1)
 	return KeyBuilder
 
 def SendToArduino(listServo, bitKey):	
 	for i in range(1, bitKey):
 		ser.write(listservo[i])
-
+		while ser.read() != 'ok' :
+			print("wait")
 def ReceiveArduino(bitKey):
 	a = False
 	while a == False:
 		if ser.inWaiting() > 1:
-			for i in range(0,bitKey):
+			for i in range(1,bitKey):
 				listReceive[i]=ser.read()
+				ser.write('ok')
 		a = True 
 	return listReceive
 def Keygen():
@@ -33,19 +36,30 @@ def main():
 	ser = serial.Serial('/dev/ttyAMA0',9600)
 	KeyBuilder = []
 	Key = []
-	bitkey = 8    # nombre de bits pour la clé
+	bitkey = 17    # nombre de bits pour la clé + 1
 	a = False
 	while a == False:
 		KeyP = Keygen(bitkey)
-		if  KeyP < 8:
-			
-
-	
-	
+		if  len(KeyP) < bitkey:
+			bitkey = bitkey - len(KeyP)
+			Keygen(bitkey)
+		else :
+			a = True
+	ListImg = os.listdir('/home/pi/image')
+	for i in range(1, len(ListImg):
+		NomImg = ListImg[i]
+		Encrypter(keyP, NomImg)
+		
+def Encrypter(keyP,fichier):
+	coder_aes = AES.new(str(keyP), AES.MODE_ECB)
+	input_image = Image.open(fichier)
+	image_string = input_image.tostring()
+	encrypted = coder_aes.encrypt(str(image_string))
+	encrypted.save
 	
 
 def Build(bitkey, Receive,SeqServo) :
-	for i in range(0,bitkey):# compare la cle envoyer et le resultat et ramplace les mauvais resulta par 7 dans la clé
+	for i in range(1,bitkey):# compare la cle envoyer et le resultat et ramplace les mauvais resulta par 7 dans la clé
 		if Receive[i] = 0 :
 			SeqServo[i] = 7 
 	for i in range(0, bitkey):# suprime les mauvais bit de clé (7) 
