@@ -1,0 +1,19 @@
+import socket
+
+host = # on verra plus tard pour l'ip de l'host
+port = 50007
+
+
+# pour connecter le rsb a mon socket
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.connect((host, port))
+
+
+# pour envoyer la clock
+
+s.send("go")
+
+# pour envoyer la fin du protocole BB84
+
+s.send("end")
