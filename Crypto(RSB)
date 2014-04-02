@@ -4,27 +4,29 @@ from PIL import Image
 import random
 
 
-def SequenceBuildForServo(NbBit):
-	for i in range(1,NbBit):
+def SequenceBuildForServo(NbBit,KeyBuilder):
+	for i in range(0,NbBit):
 		KeyBuilder[i] = random.randint(0,1)
 	return KeyBuilder
 
 def SendToArduino(listServo, bitKey):	
-	for i in range(1, bitKey):
+	for i in range(0, bitKey):
 		ser.write(listservo[i])
 		while ser.read() != 'ok' :
 			print("wait")
 def ReceiveArduino(bitKey):
 	a = False
+	listReceive = [0]*bitkey
 	while a == False:
 		if ser.inWaiting() > 1:
-			for i in range(1,bitKey):
+			for i in range(0,bitKey):
 				listReceive[i]=ser.read()
 				ser.write('ok')
 		a = True 
 	return listReceive
-def Keygen():
- 	SeqServo = SequenceBuildForServo(bitKey)
+def Keygen(bitkey,KeyBuilder):
+	KeyBuilder = [0]*bitkey
+ 	SeqServo = SequenceBuildForServo(bitKey,KeyBuilder)
 	SendToArduino(SeqServo, bitKey)
 	ser.flushInput()
 	Receive = ReceiveArduino(bitKey)
@@ -34,19 +36,19 @@ def Keygen():
 	
 def main():
 	ser = serial.Serial('/dev/ttyAMA0',9600)
-	KeyBuilder = []
-	Key = []
-	bitkey = 17    # nombre de bits pour la clé + 1
+	Key = list()
+	KeyP = list()
+	bitkey = 16    # nombre de bits pour la clé 
 	a = False
+	KeyP = Keygen(bitkey)
 	while a == False:
-		KeyP = Keygen(bitkey)
 		if  len(KeyP) < bitkey:
-			bitkey = bitkey - len(KeyP)
-			Keygen(bitkey)
+			bitkeyP = bitkey - len(KeyP)
+			KeyP.extend(Keygen(bitkeyP))
 		else :
 			a = True
 	ListImg = os.listdir('/home/pi/image')
-	for i in range(1, len(ListImg):
+	for i in range(0, len(ListImg)):
 		NomImg = ListImg[i]
 		Encrypter(keyP, NomImg)
 		
@@ -55,15 +57,23 @@ def Encrypter(keyP,fichier):
 	input_image = Image.open(fichier)
 	image_string = input_image.tostring()
 	encrypted = coder_aes.encrypt(str(image_string))
-	encrypted.save(fichier.data) #faire un petit bidouillage sur les chaine pour virer enregistrer en .data 
+	encrypted.save(ModifName(fichier).data) #faire un petit bidouillage sur les chaine pour virer enregistrer en .data 
 	
 
 def Build(bitkey, Receive,SeqServo) :
-	for i in range(1,bitkey):# compare la cle envoyer et le resultat et ramplace les mauvais resulta par 7 dans la clé
+	for i in range(0,bitkey):# compare la cle envoyer et le resultat et ramplace les mauvais resulta par 7 dans la clé
 		if Receive[i] = 0 :
 			SeqServo[i] = 7 
 	for i in range(0, bitkey):# suprime les mauvais bit de clé (7) 
 		if SeqServo[i] = 7:
 			del SeqServo[i]
 	return SeqServo
-	
+
+def ModifName(fichier):
+
+
+
+
+def envoiereseaux() :
+		# dire que continu ou pas 
+		# si continu donne nb bit
