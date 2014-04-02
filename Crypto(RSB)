@@ -57,7 +57,7 @@ def Encrypter(keyP,fichier):
 	input_image = Image.open(fichier)
 	image_string = input_image.tostring()
 	encrypted = coder_aes.encrypt(str(image_string))
-	encrypted.save(ModifName(fichier).data) #faire un petit bidouillage sur les chaine pour virer enregistrer en .data 
+	encrypted.save(ModifName(fichier)) #faire un petit bidouillage sur les chaine pour virer enregistrer en .data 
 	
 
 def Build(bitkey, Receive,SeqServo) :
@@ -70,7 +70,8 @@ def Build(bitkey, Receive,SeqServo) :
 	return SeqServo
 
 def ModifName(fichier):
-
+	fichier = fichier.replace('.jpg', '.data')
+	return fichier
 
 
 
