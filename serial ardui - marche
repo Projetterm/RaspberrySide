@@ -1,0 +1,33 @@
+void setup()
+{
+  Serial.begin(9600);
+  pinMode(13, OUTPUT);
+}
+void loop()
+{
+  if ( Serial.available())
+  {
+    char donnee = Serial.read();
+    donnee = int(donnee);
+    if (donnee == 53)
+    {
+      Serial.println("lol");
+      digitalWrite(13,HIGH);
+      delay(100);
+      digitalWrite(13,LOW);
+      delay(100);
+    }
+    if (donnee == 57)
+    {
+      Serial.println("lol2");
+      digitalWrite(13,HIGH);
+      delay(100);
+      digitalWrite(13,LOW);
+      delay(100);
+      digitalWrite(13,HIGH);
+      delay(100);
+      digitalWrite(13,LOW);
+      delay(100);
+    }
+  }
+}
