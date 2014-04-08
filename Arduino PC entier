@@ -1,0 +1,58 @@
+#include <Servo.h>
+int s = 0;
+int posok = 0;
+int clock = 0;
+Servo myservo;
+
+void setup()
+{
+  Serial.begin(9600);
+  myservo.attach(9);
+  pinMode(8, OUTPUT);
+}
+
+void loop()
+
+{
+  if (Serial.available())
+  {
+    char s = Serial.read();
+    s = int(s);
+    if (s == 50)
+    {
+      myservo.write(85);
+      posok = 1;
+      clock = 1;
+    }
+    if (s == 49)
+    {
+      myservo.write(5);
+      posok = 1;
+      clock = 1;
+    }
+    if (s == 57)
+    {
+      myservo.write(45);
+      posok = 1;
+    }
+  }
+/* impulsions message */
+  if (posok == 1)
+  {
+    delay (20);
+    digitalWrite(8, HIGH);
+    delay (10);
+    digitalWrite(8, LOW);
+    posok = 0;
+    Serial.println(1);
+  }
+/* impulsions clock */
+  if (clock == 1)
+  {
+    delay (20);
+    digitalWrite(8, HIGH);
+    delay (10);
+    digitalWrite(8, LOW);
+    clock = 0;
+  }
+}
