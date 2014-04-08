@@ -1,0 +1,154 @@
+import ftplib as ftp
+import serial
+import random
+import socket
+from Crypto.Cipher import AES
+from PIL import Image
+
+#==========-----    Définition socket    -----==========#
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+#==========-----  Initialisation serial  -----==========#
+
+ser = serial.Serial('COM5', 9600)
+
+#==========-----  Variable à configurer  -----==========#
+
+dossier = "image"
+dossierpc = "E:\image\ "
+host = "10.158.33.10"
+user = "pi"
+password = "raspberry"
+port = "COM5"
+vitesse = 9600
+host2 = "10.158.33.10"                  # a verifier/definir
+port2 = 50007
+clockBB84 = "go"
+finBB84 = "end"
+pret = "ready"
+allpos = list()
+continu = "continue"
+stop = "stop"
+resultat = "result"
+rsb = host2,port2
+
+#==========-----        Fonctions        -----==========#
+
+def ran(a,b):
+    ran = random.randint(a,b)
+    return ran
+
+def rec():
+    msg = s.recv(1024)
+    return str(msg)
+
+def servo(NbBit):
+    nb = 0
+    while nb != NbBit:
+        nb = nb+1
+        r = ran(1,2)
+        allpos.append(r)
+        ser.write(r)
+        while e != 1:
+            if recser()== 1:
+                e==1
+
+def recser():
+    while h != 1:
+        rectot = ""
+        recs = ser.read()
+        if recs != "\n":
+            if recs != "\r":
+                rectot = rectot + str(recs)
+            else:
+                h = 1
+    return rectot
+
+def downloadfolder(dossier):
+    connection().cwd("/home/pi/" + dossier)
+    filelist = connection().nlst()
+    for file in filelist:
+        connection().retrbinary("RETR "+file, open(dossierpc + file,"wb").write)
+        print file + " downloaded"
+    print "Tout les fichiers sont téléchargés dans le dossier " + dossierpc + "."
+
+def connect(host, user, password):
+    connection(ftp.FTP(host, user, password))
+
+def ready():
+    #s.connect(rsb)
+    #while t != 1:
+    #    if rec() == pret:
+    #       t = 1
+    t = 1
+    return t
+
+def keygen():
+    z = 0
+    results = list()
+    while z != 1:
+        if rec() == resultat:
+            bit = int(rec())
+            results.append(str(bit))
+        if rec() == stopkey:
+            z = 1
+    key = build(results, allpos)
+    return key
+
+def build(results, allpos):
+    ltot = allpos
+    for i in range(0,len(results)):
+        var=results[i]
+        if var==1:
+            results[i]=8
+        if var==2:
+            results[i]=0
+    for i in range(0,len(ltot)):
+          ltot[i]=ltot[i]+results[i]
+    for i in range(0,len(ltot)):
+        for i in range(0,9):
+            var1=ltot[i]
+            if var1==8:
+                ltot.remove(8)
+            if var1==9:
+                ltot.remove(9)
+    return ltot
+
+def decrypt(dossiercible, key):
+    filelist = os.list(dossiercible)
+    for file in filelist:
+        targetfile = file
+        decrypter(key, targetfile)
+        print targetfile + " décrypté."
+
+def decrypter(key, targetfile):
+    coder_aes = AES.new(str(key), AES.MODE_ECB)
+    input_image = Image.open(targetfile)
+    image_string = input_image.tostring()
+    decrypted = coder_aes.decrypt(str(image_string))
+    decrypted.save(fichier.jpg)
+
+#==========-----        Programme        -----==========#
+
+ser.write(9)
+progend = 0
+while progend != 1:
+    if ready() == 1:
+        c = 1
+        while c == 1:
+            if rec() == continu:
+                NbBit = int(rec())
+                servo(NbBit)
+            if rec() == stop:
+                c = 0
+        key = keygen()
+        print "Clé générée : " + str(key)
+        connect(host, user, password)
+        print "Connecté au FTP."
+        downloadfolder(dossier)
+        print "Fichier(s) téléchargé(s)."
+        decrypt(dossierpc, key)                    # a tester
+        print "Fichier(s) décrypté(s)."
+        progend = 1
+print "Programme fini. Ouvrez le dossier à " + dossierpc + "."
