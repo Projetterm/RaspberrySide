@@ -1,56 +1,87 @@
+# -*-coding:Latin-1 -*
 import serial
 from Crypto.Cipher import AES
 from PIL import Image
 import random
-
+import socket
+from time import sleep
+import os
+#-----------------------init --------------------#
+host = "172.26.1.101"  # normal qu'il n'y ai pas d'host defini
+port = 50007
+#s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#s.bind((host, port))
+#s.listen(5)
+ser = serial.Serial('/dev/ttyAMA0',9600)
+#-------------------------------------------------------#
 
 def SequenceBuildForServo(NbBit,KeyBuilder):
+	print("SequenceBuildForServo")
 	for i in range(0,NbBit):
-		KeyBuilder[i] = random.randint(0,1)
+		KeyBuilder[i] = str(random.randint(0,1))
 	return KeyBuilder
 
-def SendToArduino(listServo, bitKey):	
-	for i in range(0, bitKey):
-		ser.write(listservo[i])
-		while ser.read() != 'ok' :
+def SendToArduino(listServo, bitkey):	
+	print("SendToArduino")
+	for i in range(0, bitkey):
+		ser.write(listServo[i])
+		print(listServo[i])
+		#a = ""
+		#a = ser.read()
+		#print(a)
+		while ser.read() != "o" :
 			print("wait")
-def ReceiveArduino(bitKey):
-	a = False
+	print("fin send to arduino")
+def ReceiveArduino(bitkey):
+	print("ReceiveArduino")
 	listReceive = [0]*bitkey
-	while a == False:
-		if ser.inWaiting() > 1:
-			for i in range(0,bitKey):
-				listReceive[i]=ser.read()
-				ser.write('ok')
-		a = True 
+	for i in range(0,bitkey):
+		while ser.inWaiting() != 0:
+			print("wait resultat")
+		listReceive[i]=ser.read()
+		print(listReceive[i])
+		ser.write("v") 
 	return listReceive
-def Keygen(bitkey,KeyBuilder):
+def Keygen(bitkey):
+	bitkey = bitkey/2
+	ser.write(str(bitkey))
+	bitkey = bitkey*2
+	print("bitkey=",bitkey)
+	Receive = list()
+	print("Keygen")
 	KeyBuilder = [0]*bitkey
- 	SeqServo = SequenceBuildForServo(bitKey,KeyBuilder)
-	SendToArduino(SeqServo, bitKey)
-	ser.flushInput()
-	Receive = ReceiveArduino(bitKey)
+ 	SeqServo = SequenceBuildForServo(bitkey,KeyBuilder)
+	SendToArduino(SeqServo, bitkey)
+	ser.flush()
+	while ser.read() != "S":
+		print("W")		
+	ser.write("o");
+	Receive = ReceiveArduino(bitkey)
 	KeyP = Build(bitkey, Receive,SeqServo) 
 	return KeyP 
 	
 	
 def main():
-	ser = serial.Serial('/dev/ttyAMA0',9600)
 	Key = list()
 	KeyP = list()
-	bitkey = 16    # nombre de bits pour la clé 
+	bitkey = 16    # nombre de bits pour la cle
 	a = False
 	KeyP = Keygen(bitkey)
+	print("apres kaygen()")
 	while a == False:
 		if  len(KeyP) < bitkey:
+			print("trop court")
 			bitkeyP = bitkey - len(KeyP)
+			#envoiereseau(bitkey)
+			ser.write("C")
 			KeyP.extend(Keygen(bitkeyP))
 		else :
+			print("16 bits")
 			a = True
 	ListImg = os.listdir('/home/pi/image')
 	for i in range(0, len(ListImg)):
 		NomImg = ListImg[i]
-		Encrypter(keyP, NomImg)
+		Encrypter(KeyP, NomImg)
 		
 def Encrypter(keyP,fichier):
 	coder_aes = AES.new(str(keyP), AES.MODE_ECB)
@@ -61,12 +92,23 @@ def Encrypter(keyP,fichier):
 	
 
 def Build(bitkey, Receive,SeqServo) :
-	for i in range(0,bitkey):# compare la cle envoyer et le resultat et ramplace les mauvais resulta par 7 dans la clé
-		if Receive[i] = 0 :
-			SeqServo[i] = 7 
-	for i in range(0, bitkey):# suprime les mauvais bit de clé (7) 
-		if SeqServo[i] = 7:
-			del SeqServo[i]
+	print("build()")
+	for i in range(0,bitkey):# compare la cle envoyer et le resultat et ramplace les mauvais resulta par 7 dans la cle
+		print("for build")
+		if Receive[i] == "0" :
+			SeqServo[i] = '7'
+		print(SeqServo[i])
+	for a in range(0,SeqServo.count('7')):
+		for i in range(0,len(SeqServo)-1):
+			print(i)
+			if SeqServo[i] == '7':
+				print("seqServo Av")
+				print(len(SeqServo))
+				del SeqServo[i]
+				print("seqServo Ap")
+				print(len(SeqServo))
+				break
+	print("fin build()")
 	return SeqServo
 
 def ModifName(fichier):
@@ -75,6 +117,18 @@ def ModifName(fichier):
 
 
 
-def envoiereseaux() :
-		# dire que continu ou pas 
-		# si continu donne nb bit
+def envoiereseaux(bitkey) :
+	s.send("continue")
+	s.send(bitkey)
+	# si continu donne nb bit
+	
+def ready():
+    conn, addr = s.accept()
+    s.send("ready")
+
+
+#----------------------------------------------#
+#ready()
+for i in range(0,1) :
+	ser.write("C")	
+main()
