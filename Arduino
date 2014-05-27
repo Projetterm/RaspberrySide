@@ -3,11 +3,14 @@
 #include "RTClib.h"
 #include <SoftwareSerial.h>
 #include <string>
+#include <Servo.h>
 /* ---------------------------*/
 
 /*---------- déclaration objets ----------*/
 RTC_DS1307 RTC;
-SoftwareSerial mySerial(10, 11);
+SoftwareSerial mySerial(10, 11); //* RX is digital pin 10 (connect to TX of other device)
+ //* TX is digital pin 11 (connect to RX of other device)
+Servo myServo;
 /* ---------------------------------------*/
 
 // declaration fonctions
@@ -19,7 +22,7 @@ void orderSRSBP();
 void envRSB();
 void Reset();
 void Crypto();
-
+boolean Wait();
 // variables
 boolean mPowerOn = false;
 boolean verfD = false,verfS = false;
@@ -32,35 +35,44 @@ void setup()
    digitalWrite(13, LOW);
    pinMode(12,INPUT);   
    digitalWrite(12, HIGH ); // pullup de la pin 12
-   Serial.begin(57600);
+   Serial.begin(9600);
    Wire.begin();      
    RTC.begin(); 
    //RTC.adjust(DateTime(__DATE__, __TIME__));
    pinMode(2,OUTPUT);//sotie commande allumage 
    pinMode(A0,INPUT);
    pinMode(4,INPUT); // entrer qui simule l'heure
- 
 }
 
 /* ------------  fonction principale ------------ */
 void loop() 
 {
+  Serial.print("loop\n");
   if (mPowerOn != true)// on regarde si on doit allumer le RSB
   {
+    Serial.print("p1");
     if (powerOn() == true)
     {
+      Serial.print("power");
       digitalWrite(2,HIGH); 
     }
   }
   else
   {
+    Serial.print("else");
     envRSB();
   }
- char  a = mySerial.read();
-  if(a == "C")
+  if(mySerial.available())
   {
-    Crypto();
-  }
+    Serial.print("pass");
+     Serial.print("a = ");
+     char  a = mySerial.read();
+     Serial.println(a);
+    if (a == 'C')
+    {
+      Crypto();
+    }  
+}
     
 }
 /* ---------------------------------------------- */
@@ -71,25 +83,28 @@ void loop()
 /* ------------  définition fonction  ------------ */
 boolean powerOn()
 {
+  Serial.print("powerOn()");
   if(mPowerOn != true)
   {
-
-    if( DTRAN() == true || verifH() == true)// on regarde si c'est l'heure ou si on a un signal sur la photo diode
+    Serial.print("ifP");
+    if( /*DTRAN() == true ||*/ verifH() == true)// on regarde si c'est l'heure ou si on a un signal sur la photo diode
     {
+      Serial.print("if2");
       mPowerOn = true;
       return true;
     }
   }
   else
   {
+    Serial.print("elese");
     return false;
   }
 }
 
 boolean DTRAN() // transforme l'entrée analogique en binaire
 {
-  int testdiode = analogRead(A0);
-  if (testdiode > 900)
+  int testdiode = analogRead(A0)/1023;
+  if (testdiode < 1)
   {
     PHDIODE = true;
   }
@@ -138,15 +153,18 @@ void envRSB()
 
 boolean verifH()
 {
+  Serial.print("VerifH()");
   DateTime now = RTC.now();  //récupére les donnés du rtc
   uint8_t minutes = now.minute(),heure = now.hour();
   boolean Led = digitalRead(4);
-  if( heure == 8 /*&& minutes == 8*/ || heure == 18 || heure == 22 || Led == HIGH)
+  if( heure == 10 /*&& minutes == 8*/ || heure == 18 || heure == 22 || Led == HIGH)
   {
+    Serial.print("VerifH()= true");
     return true;
   }
   else
   {
+    Serial.print("VerifH()= false");
     return false;
   }
 }
@@ -154,52 +172,69 @@ boolean verifH()
 void Crypto() 
 {
   int a;
-  while (a == false)
-  {
-    char SeqServo[16];
-    char SeqResult[16];
-    for( int i ; i < 16; i++)
+  boolean C = false;
+  myServo.attach(9);
+  boolean Co = false;
+    a = mySerial.read();
+    a = (a-48)*2;
+    Serial.print("bits =");
+     Serial.println(a);
+     char SeqResult[a];
+    Serial.println("first while crypto");
+    char SeqServo[a];
+    Serial.println("beforfor");
+    for( int i = 0 ; i < a; i++)
     {
-      if( mySerial.available())
+      Serial.println("for");
+      while(mySerial.available() != 1)
       {
+        Serial.println("waitRSB");
+      }
+     if( mySerial.available())
+     { 
+        Serial.println(i);
         SeqServo[i] = mySerial.read();
-        mySerial.write("ok");
+        Serial.println(SeqServo[i]);
+        mySerial.write("o");
       }
-      else 
-      {
-        i = 16;
-      }
+      if( i == 15){ Co = true;}
     }
       while ( DTRAN() != true)
-      {/*wait*/
-       ;
+      {//wait
+       Serial.println("wait");
       } //1er clock
-      for (int i; i < 16; i++)
-      {
-        if( SeqServo[i] == "1")
+      for (int i = 0; i < a; i++)
+      {  
+        boolean Check = false;
+        if( SeqServo[i] == '1')
         {
-          //commande servo pos 1
+          Serial.print("servopos1");
+          myServo.write(140);
         }
-        if( SeqServo[i] == "0")
+        if( SeqServo[i] == '0')
         {
-          // commande servo pos 2
+          Serial.print("servopos0");
+          myServo.write(10);
         }
-        // faire une fonction de wait propre
-        while (/*fonction wait*/ != /*fin*/)
+      
+        unsigned long tpsFinal=millis()+1000;
+        SeqResult[i] = '0';
+        while (millis()< tpsFinal)
         {
-          if ( DTRAN == true)
-          {
-            SeqResult[i] = "1";
-          }
-          else 
-          {
-            SeqReslut[i] = "0";
-          }
+          Serial.println("WaitCWile");
+          if ( DTRAN() == true)  SeqResult[i] = '1';
         }
-      }      
+      }    
+    Serial.println("S");
+    mySerial.write("S");
+    while(mySerial.read() != 'o'){Serial.println("wait RSB o");}
+    for( int i = 0; i < a; i++)
+    {
+      Serial.println(SeqResult[i]);
+      mySerial.write(SeqResult[i]);
+      while(mySerial.read() != 'v'){Serial.println("wait RSB v");}
     }
   }
-}
 
 /*void Reset()
 {
