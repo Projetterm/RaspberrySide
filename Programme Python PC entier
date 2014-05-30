@@ -1,29 +1,25 @@
+# -*- coding: cp1252 -*-
+
 import ftplib as ftp
 import serial
 import random
-import socket
+from socket import *
 from Crypto.Cipher import AES
 from PIL import Image
+from time import sleep
+import os
 
-#==========-----    Définition socket    -----==========#
+#==========-----  Variable a configurer  -----==========#
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-#==========-----  Initialisation serial  -----==========#
-
-ser = serial.Serial('COM5', 9600)
-
-#==========-----  Variable à configurer  -----==========#
-
-dossier = "image"
-dossierpc = "E:\image\ "
-host = "10.158.33.10"
+dossier = "image/"
+dossierpc = "C:\Users\Zejulius\Documents\image projet" #sinon "E:\image\"
+host = "172.26.1.103"
 user = "pi"
 password = "raspberry"
-port = "COM5"
+port = "COM61"
 vitesse = 9600
-host2 = "10.158.33.10"                  # a verifier/definir
-port2 = 50007
+host2 = ""                  # a verifier/definir
+port2 = 50012                  # faire gaffe
 clockBB84 = "go"
 finBB84 = "end"
 pret = "ready"
@@ -32,6 +28,12 @@ continu = "continue"
 stop = "stop"
 resultat = "result"
 rsb = host2,port2
+t = 0
+r = 0
+
+#==========-----  Initialisation serial  -----==========#
+
+ser = serial.Serial(port, 9600, writeTimeout = 0)
 
 #==========-----        Fonctions        -----==========#
 
@@ -43,27 +45,34 @@ def rec():
     msg = s.recv(1024)
     return str(msg)
 
-def servo(NbBit):
-    nb = 0
-    while nb != NbBit:
-        nb = nb+1
+def servo(NB):
+    for i in range(0, NB):
+        print "i debut : ", i
         r = ran(1,2)
+        print "ran = ",r
         allpos.append(r)
-        ser.write(r)
-        while e != 1:
-            if recser()== 1:
-                e==1
+        print "allpos = ", allpos
+        ser.write(str(r))
+        sleep(3)
+        print "r send"
+        t = 0
+        while recser() != "o":
+            t = t+1
+            print "waiting arduino"
+            print "gone through ",t, " times"
+            if t == 50:
+                ser.write(str(r))
+                print "r send again : ", r
+                t = 0
+        print "i fin = ", i
 
 def recser():
-    while h != 1:
-        rectot = ""
-        recs = ser.read()
-        if recs != "\n":
-            if recs != "\r":
-                rectot = rectot + str(recs)
-            else:
-                h = 1
-    return rectot
+    print "entering recser()"
+    recs = ""
+    print "recs before reading : " + recs
+    recs = ser.read()
+    print "recs after reading : " + recs + ", leaving rec()"
+    return recs
 
 def downloadfolder(dossier):
     connection().cwd("/home/pi/" + dossier)
@@ -71,18 +80,10 @@ def downloadfolder(dossier):
     for file in filelist:
         connection().retrbinary("RETR "+file, open(dossierpc + file,"wb").write)
         print file + " downloaded"
-    print "Tout les fichiers sont téléchargés dans le dossier " + dossierpc + "."
+    print "Tout les fichiers sont telecharges dans le dossier " + dossierpc + "."
 
 def connect(host, user, password):
     connection(ftp.FTP(host, user, password))
-
-def ready():
-    #s.connect(rsb)
-    #while t != 1:
-    #    if rec() == pret:
-    #       t = 1
-    t = 1
-    return t
 
 def keygen():
     z = 0
@@ -94,7 +95,18 @@ def keygen():
         if rec() == stopkey:
             z = 1
     key = build(results, allpos)
-    return key
+    keydone = ""
+    for i in range (0, len(key)):
+        keydone = keydone + str(key[i])
+        print keydone
+    return keydone
+
+def connection(value=None):
+    if value == None:
+        return getattr(connection, 'value', None)
+    else:
+        connection.value = value
+        return value
 
 def build(results, allpos):
     ltot = allpos
@@ -116,39 +128,52 @@ def build(results, allpos):
     return ltot
 
 def decrypt(dossiercible, key):
-    filelist = os.list(dossiercible)
+    filelist = os.listdir(dossiercible)
     for file in filelist:
         targetfile = file
+        print targetfile
         decrypter(key, targetfile)
-        print targetfile + " décrypté."
+        print targetfile + " decrypte."
 
 def decrypter(key, targetfile):
-    coder_aes = AES.new(str(key), AES.MODE_ECB)
-    input_image = Image.open(targetfile)
+    coder_aes = AES.new(key, AES.MODE_ECB)
+    input_image = Image.open(dossierpc+"\\"+targetfile)
     image_string = input_image.tostring()
     decrypted = coder_aes.decrypt(str(image_string))
     decrypted.save(fichier.jpg)
 
 #==========-----        Programme        -----==========#
 
-ser.write(9)
+#ser.write("9")
 progend = 0
 while progend != 1:
-    if ready() == 1:
-        c = 1
-        while c == 1:
-            if rec() == continu:
-                NbBit = int(rec())
-                servo(NbBit)
-            if rec() == stop:
-                c = 0
-        key = keygen()
-        print "Clé générée : " + str(key)
-        connect(host, user, password)
-        print "Connecté au FTP."
-        downloadfolder(dossier)
-        print "Fichier(s) téléchargé(s)."
-        decrypt(dossierpc, key)                    # a tester
-        print "Fichier(s) décrypté(s)."
-        progend = 1
-print "Programme fini. Ouvrez le dossier à " + dossierpc + "."
+    #mysock = socket(AF_INET, SOCK_STREAM)
+    #addr = (host2,port2)
+    #mysock.bind(addr)
+    #mysock.listen(10)
+    #mysock.setblocking(1)
+    print "waiting connection"
+    #s, addr = mysock.accept()
+    #s.sendall("ready")
+    c = 1
+    while c == 1:
+        #if rec() == continu:
+            NbBit = "16" #rec()
+            NB = int(NbBit)
+            print "NbBit = ", NB
+            servo(NB)
+       # if rec() == stop:
+            c = 0
+    key = keygen()
+    #key = [0,1,0,0,1,0,1,0,1,0,1,1,1,1,0,0]
+    print "Cle generee : " + str(key)
+    connect(host, user, password)
+    print "Connecte au FTP."
+    downloadfolder(dossier)
+    print "Fichier(s) telecharge(s)."
+    decrypt(dossierpc, key)                    # a tester
+    print "Fichier(s) decrypte(s)."
+    progend = 1
+    
+print ("Programme fini. Ouvrez le dossier à " + dossierpc + ".")
+
