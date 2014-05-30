@@ -1,58 +1,59 @@
 #include <Servo.h>
-int s = 0;
-int posok = 0;
-int clock = 0;
+int rec = 0;
+int recs = 0;
 Servo myservo;
+Servo myservoimpu;
 
 void setup()
 {
   Serial.begin(9600);
-  myservo.attach(9);
-  pinMode(8, OUTPUT);
+  myservo.attach(10);
+  myservoimpu.attach(8);
+  myservoimpu.write(5);
+  myservo.write(57);
 }
 
 void loop()
-
 {
-  if (Serial.available())
+  rec = Serial.read();
+  if (rec == 50)
   {
-    char s = Serial.read();
-    s = int(s);
-    if (s == 50)
-    {
-      myservo.write(85);
-      posok = 1;
-      clock = 1;
-    }
-    if (s == 49)
-    {
-      myservo.write(5);
-      posok = 1;
-      clock = 1;
-    }
-    if (s == 57)
-    {
-      myservo.write(45);
-      posok = 1;
-    }
+    myservo.write(120);
+    delay (600);
+    myservoimpu.write(125);
+    delay (600);
+    myservoimpu.write(5);
+    delay (600);
+    myservoimpu.write(125);
+    delay (600);
+    myservoimpu.write(5);
+    delay (600);
+    Serial.print("o");
   }
-/* impulsions message */
-  if (posok == 1)
+  if (rec == 49)
   {
-    delay (20);
-    digitalWrite(8, HIGH);
-    delay (10);
-    digitalWrite(8, LOW);
-    posok = 0;
-    Serial.println(1);
+    myservo.write(5);
+    delay (600);
+    myservoimpu.write(125);
+    delay (600);
+    myservoimpu.write(5);
+    delay (600);
+    myservoimpu.write(125);
+    delay (600);
+    myservoimpu.write(5);
+    delay (600);
+    Serial.print("o");
   }
-/* impulsions clock */
-  if (clock == 1)
+  if (rec == 57)
   {
-    delay (20);
-    digitalWrite(8, HIGH);
-    delay (10);
-    digitalWrite(8, LOW);
-    clock = 0;
+    myservo.write(57);
+    delay (600);
+    myservoimpu.write(125);
+    delay (600);
+    myservoimpu.write(5);
+    delay (600);
   }
+  delay(100);
+  Serial.print("e");
+  rec = 0;
 }
